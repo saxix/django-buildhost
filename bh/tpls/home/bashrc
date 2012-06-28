@@ -1,0 +1,24 @@
+# .bashrc
+
+# User specific aliases and functions
+
+alias rm="/bin/rm -i"
+alias cp="cp -i"
+alias mv="mv -i"
+alias ll="ls -al"
+alias env="env | sort"
+alias checklog='tail -f logs/* logs/pasport/* logs/oracle/*'
+
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+    . /etc/bashrc
+fi
+
+export PATH=$HOME/bin:$HOME/apache/bin:$PATH
+export PIP_DOWNLOAD_CACHE={{pip_cache}}
+export PS1="[\u@\h \W]\$ "
+
+[[ -e $HOME/bin/activate ]] && source $HOME/bin/activate
+[[ -e $HOME/.django_bash_completion ]] && source $HOME/.django_bash_completion
+

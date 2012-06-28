@@ -1,0 +1,9 @@
+include README
+include MANIFEST.in
+include setup.py
+exclude manage.py
+exclude **/conf/settings/active.py
+
+recursive-include cashvoucher *.py
+recursive-include requirements *.*
+
