@@ -1,12 +1,28 @@
 import crypt
-from fabric.api import *
-from fabric.contrib.files import contains, upload_template, exists, sed
 import re
-from utils import setup_env_for_user
 import os
+from fabric.api import *
+from fabric.contrib.files import contains, exists
+from bh.utils import _upload_template, setup_env_for_user
 
-#TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'tpls', 'profiles')
+@task
+def du():
+    run('for x in `ls %(PREFIX)s`;do test -e "%(PREFIX)s/$x/.bashrc" && du -sh %(PREFIX)s/$x; done' % env)
+    run('df -h')
 
+@task
+def clear():
+    run('for x in `ls %(PREFIX)s`;do test -e "%(PREFIX)s/$x/.bashrc" && rm -fr %(PREFIX)s/$x/logs/* %(PREFIX)s/$x/~*; done' % env)
+
+@task
+def allenv(cmd):
+    with settings(xcmd=cmd):
+        print('%(PREFIX)s/sbin/all_env_shell.sh %(xcmd)s' % env)
+
+@task
+def allenv(cmd):
+    with settings(xcmd=cmd):
+        print('%(PREFIX)s/sbin/all_env_shell.sh %(xcmd)s' % env)
 
 @task
 def init_env():
@@ -18,9 +34,6 @@ def init_env():
         - install all required libraries/sources
 
     """
-#    print 11111,  contains("/etc/group", r"^%(group)s:" % env, escape=False )
-#    print r"^%(group)s:x" % env
-
     if not contains("/etc/group", r"^%(group)s:x" % env, escape=False ):
         sudo('groupadd %(group)s' % env)
 
@@ -69,32 +82,39 @@ def reset_host():
     #sudo('rm -fr %(PREFIX)s/*' % env)
 
 @task
-def create_user(admin, password='123'):
+def user_create(admin, password='123'):
     """ create a user
 
     """
 
     if not contains("/etc/passwd", "^%s:" % admin):
-        sudo('useradd -g pasport %s -M -g pasport' % admin)
+        with settings(admin=admin):
+            sudo('useradd -g %(group)s %(admin)s -M -g %(group)s' % env )
     else:
         out = sudo('groups %s' % admin)
         assert re.search(r"\%(group)s\b" % env, out) # check the user in pasport group
 
     setup_env_for_user(admin)
-
-    with settings(pwd=crypt.crypt(password, ".sax/")):
-        sudo('mkdir %(admin_home_dir)s' % env)
-        sudo('touch %(admin_home_dir)s/.scout' % env)
-        sudo('usermod -p "%(pwd)s" -d %(admin_home_dir)s -m -s /bin/bash %(admin)s' % env)
-    chown()
+    user_setup( admin, password )
 
 @task
-def reset_user(admin, password='123'):
-    """ reinitialize user environment
+def user_remove(admin):
+    """ create a user
+
+    """
+    setup_env_for_user(admin)
+    run('userdel %s' % admin)
+    run('rm -fr %(admin_home_dir)s' % env)
+
+@task
+def user_setup(admin, password='123'):
+    """ reinitialize user environment homedir and password
     """
     setup_env_for_user(admin)
     with settings(pwd=crypt.crypt(password, ".sax/")):
-        sudo('usermod -p "%(pwd)s" -d %(admin_home_dir)s -s /bin/bash %(admin)s' % env)
+        sudo('mkdir -p %(admin_home_dir)s' % env)
+        sudo('touch %(admin_home_dir)s/.scout' % env)
+        sudo('usermod -p "%(pwd)s" -g %(group)s -d %(admin_home_dir)s -s /bin/bash %(admin)s' % env)
     sudo('touch %(admin_home_dir)s/.scout' % env)
     chown()
 
@@ -108,6 +128,9 @@ def chown():
 
     sudo('chown -R %(admin)s:%(group)s %(base)s' % env)
     sudo('chmod -R ug+rwx %(base)s ' % env)
+    sudo('chmod g+rw,o-rw %(PREFIX)s' % env)
+    sudo('chmod g+rw,o-rw %(pip_cache)s' % env)
+    sudo('chmod g+rw,o-rw %(packages_cache)s' % env)
 
 
 def ubuntu_prereq():
@@ -149,9 +172,8 @@ def copy_packages():
 
 @task
 def upload_common_task():
-    upload_template("all_env_command.sh", "%(PREFIX)s/sbin/all_env_command.sh" % env, env, use_jinja=True, template_dir=TEMPLATE_DIR)
-    upload_template("pending_records.sh", "%(PREFIX)s/sbin/pending_records.sh" % env, env, use_jinja=True,template_dir=TEMPLATE_DIR)
-    upload_template("payroll.sh", "%(PREFIX)s/sbin/payroll.sh" % env, env, use_jinja=True, template_dir=TEMPLATE_DIR)
+    _upload_template("sbin/all_env_command.sh", "%(PREFIX)s/sbin/all_env_command.sh" % env)
+    _upload_template("sbin/cronhandler.sh", "%(PREFIX)s/sbin/cronhandler.sh" % env)
     run('chmod ugo+x-rw %(PREFIX)s/sbin' % env)
     run('chmod ugo-rw,o-rw+x %(PREFIX)s/sbin/*' % env)
 

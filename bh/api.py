@@ -1,3 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from django.utils.translation import gettext as _
+#from bh.utils import init, usudo, as_bool
+#from bh.root import *
+#import root
+#root, user, system

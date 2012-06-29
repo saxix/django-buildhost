@@ -14,7 +14,7 @@ for dir in `ls $BASE`;do
     cd $TARGET
     . $TARGET/bin/activate
     echo "Running $1 on $TARGET"
-    su - $OWNER -c $BASE/$dir/bin/python $TARGET/bin/pasport_admin.py $1
+    su - $OWNER -c $1
     deactivate
   fi
 

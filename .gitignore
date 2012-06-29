@@ -1,0 +1,7 @@
+dist
+pip_cache/*
+tarballs/*
+.idea/*
+MANIFEST
+*.pyc
+

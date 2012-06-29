@@ -34,7 +34,7 @@ deactivate () {
         unset _OLD_VIRTUAL_PS1
     fi
 
-    unset PASPORT_ENV
+    unset SITE_ENV
     if [ ! "$1" = "nondestructive" ] ; then
     # Self destruct!
         unset -f deactivate
@@ -44,18 +44,17 @@ deactivate () {
 # unset irrelavent variables
 deactivate nondestructive
 
-PASPORT_ENV="{{base}}"
+SITE_ENV="{{base}}"
 export PASPORT_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
 _OLD_LD_LIBRARY_PATH=LD_LIBRARY_PATH
-PATH="$PASPORT_ENV/bin:$PASPORT_ENV/apache/bin:$PATH"
+PATH="$SITE_ENV/bin:$SITE_ENV/apache/bin:$PATH"
 export PATH
-export LD_LIBRARY_PATH=$PASPORT_ENV/lib:$PASPORT_ENV/oracle/instantclient_11_2
-export ORACLE_HOME=$PASPORT_ENV/oracle/instantclient_11_2
-export PASPORT_LOGDIR=$PASPORT_ENV/logs/pasport
-export PYTHONPATH=$PASPORT_ENV/etc/:$PYTHONPATH
-export DJANGO_SETTINGS_MODULE=pasport_settings
+export LD_LIBRARY_PATH=$SITE_ENV/lib:$SITE_ENV/oracle/instantclient_11_2
+export ORACLE_HOME=$SITE_ENV/oracle/instantclient_11_2
+export SITE_LOGDIR=$SITE_ENV/logs/pasport
+export PYTHONPATH=$SITE_ENV/etc/:$PYTHONPATH
 export HTTP_LISTEN_PORT={{http_port}}
 
 # unset PYTHONHOME if set
@@ -66,15 +65,15 @@ if [ -n "$PYTHONHOME" ] ; then
     unset PYTHONHOME
 fi
 
-if [ -z "$PASPORT_ENV_DISABLE_PROMPT" ] ; then
+if [ -z "$SITE_ENV_DISABLE_PROMPT" ] ; then
     _OLD_VIRTUAL_PS1="$PS1"
     if [ "x" != x ] ; then
 	PS1="$PS1"
     else
-    if [ "`basename \"$PASPORT_ENV\"`" = "__" ] ; then
+    if [ "`basename \"$SITE_ENV\"`" = "__" ] ; then
         # special case for Aspen magic directories
         # see http://www.zetadev.com/software/aspen/
-        PS1="[`basename \`dirname \"$PASPORT_ENV\"\``] $PS1"
+        PS1="[`basename \`dirname \"$SITE_ENV\"\``] $PS1"
     else
         PS1="(`basename \"$PASPORT_ENV\"`)$PS1"
     fi

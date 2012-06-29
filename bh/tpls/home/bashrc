@@ -19,6 +19,6 @@ export PATH=$HOME/bin:$HOME/apache/bin:$PATH
 export PIP_DOWNLOAD_CACHE={{pip_cache}}
 export PS1="[\u@\h \W]\$ "
 
-[[ -e $HOME/bin/activate ]] && source $HOME/bin/activate
-[[ -e $HOME/.django_bash_completion ]] && source $HOME/.django_bash_completion
+[[ -x $HOME/bin/activate ]] && source $HOME/bin/activate
+[[ -x $HOME/.django_bash_completion ]] && source $HOME/.django_bash_completion
 

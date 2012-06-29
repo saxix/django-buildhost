@@ -1,10 +1,8 @@
 from fabric.api import *
-from fabric.contrib.files import contains, upload_template, sed, exists
-from user import setup_env_for_user
-
-from fabfile import usudo, _bool
 from fabric.colors import green, red
-import os
+from fabric.contrib.files import upload_template, exists
+from bh.utils import as_bool
+from bh.user import setup_env_for_user
 
 @task
 def python():
@@ -33,6 +31,7 @@ def python():
     run('rm -f %(base)s/distribute-*' % env)
     run('pip install ipython')
 
+
 @task
 def apache():
     """ compile and install apache
@@ -40,7 +39,7 @@ def apache():
     setup_env_for_user(env.user)
 
     run('mkdir -p %(admin_home_dir)s/~build' % env)
-    run('mkdir -p %(admin_home_dir)s/etc/httpd/conf.d' % env )
+    run('mkdir -p %(admin_home_dir)s/etc/httpd/conf.d' % env)
     with cd(env.build):
         run('tar -xzf %(packages_cache)s/%(APACHE)s.tar.gz' % env)
         with cd(env.APACHE):
@@ -56,15 +55,33 @@ def apache():
                 ' --includedir=%(base)s/lib/include/apache'\
                 ' --localstatedir=%(base)s/var/run'\
                 ' --enable-rewrite'\
-#                ' --enable-rewrite=shared'\
-#                ' --enable-mods-shared=most'\
+                #                ' --enable-rewrite=shared'\
+                #                ' --enable-mods-shared=most'\
                 ' --with-included-apr'\
                 ' --enable-ssl'
-                % env)
+            % env)
             run('make clean')
             run('make')
             run('make install')
 
+
+@task
+def sqlite():
+    setup_env_for_user(env.user)
+    run('mkdir -p %(admin_home_dir)s/~build' % env)
+    with cd(env.build):
+        run('tar -xzf %(packages_cache)s/%(SQLITE)s.tar.gz' % env)
+        with cd(env.SQLITE):
+            run('./configure '\
+                ' --prefix=%(base)s'\
+                ' --exec_prefix=%(base)s'\
+                ' --bindir=%(base)s/bin'\
+                ' --sbindir=%(base)s/bin' % env )
+            run('make')
+            run('make install')
+            run('sqlite3 -version')
+
+#            run("cp uwsgi %(base)s/bin/uwsgi" % env)
 
 @task
 def uwsgi():
@@ -95,6 +112,22 @@ def modwsgi():
 
 
 @task
+def sqlplus():
+    setup_env_for_user(env.user)
+    tar = env.deps['sqlplus']
+    run('rm -fr ~/~build/sqlplus')
+    run('mkdir -p ~/~build/sqlplus')
+    with settings(tar=tar):
+        put('%(tarballs)s/%(tar)s' % env, '~/~build/sqlplus/')
+    with cd('~/~build/sqlplus'):
+        run('ls')
+        run('unzip %s' % tar)
+        run('cp instantclient_11_2/* ~/oracle/instantclient_11_2/')
+        run('mv ~/oracle/instantclient_11_2/sqlplus ~/bin/sqlplus')
+    run('sqlplus  -V') # simple check
+
+
+@task
 def oracle():
     """ compile and install oracle drivers
     """
@@ -107,13 +140,13 @@ def oracle():
             arch = run('uname -i')
             if arch == 'x86_64':
                 run('find %(packages_cache)s -name "instantclient*86-64*" -exec unzip "{}" \;' % env)
-            elif arch== 'i386':
+            elif arch == 'i386':
                 run('find %(packages_cache)s -name "instantclient*" -name "*86-64*" -exec unzip "{}" \;' % env)
             with cd('instantclient_*'):
                 env.oracle_home = '%(base)s/oracle/instantclient_11_2' % env
                 run('ln -sf libclntsh.so.11.1 libclntsh.so')
 
-    assert exists('%(oracle_home)s/libclntsh.so' % env )
+    assert exists('%(oracle_home)s/libclntsh.so' % env)
     run('pip install cx_Oracle')
     run('mkdir ~/logs/oracle')
     run('ln -s ~/logs/oracle %(base)s/oracle/instantclient_11_2/log' % env)
@@ -127,10 +160,10 @@ def ngnix(recover=False, configure=True, make=True, install=True):
     """ compile and install nginx
     """
     setup_env_for_user()
-    _recover = _bool(recover, False)
-    _configure = _bool(configure, True)
-    _make = _bool(make, True)
-    _install = _bool(install, True)
+    _recover = as_bool(recover, False)
+    _configure = as_bool(configure, True)
+    _make = as_bool(make, True)
+    _install = as_bool(install, True)
     with cd(env.build):
         if not _recover:
             run("tar -xzf %(packages_cache)s/%(NGINX)s.tar.gz" % env)
@@ -207,6 +240,7 @@ def check():
         assert out.startswith("%(base)s/bin:%(base)s/apache/bin" % env), out
         print green('Ok (%s)' % out)
 
+
 @task
 def copy_cmds():
     """ initalize remote admin home directory
@@ -225,7 +259,8 @@ def install():
 
     execute(python)
     execute(apache)
-    execute(oracle)
     execute(modwsgi)
-    execute(uwsgi)
-    execute(ngnix)
+
+#    execute(oracle)
+#    execute(uwsgi)
+#    execute(ngnix)

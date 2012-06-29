@@ -1,6 +1,5 @@
-import bh
-NAME = 'bh'
-VERSION = __version__ = (0, 0, 1, 'alpha', 0)
+NAME = 'django-buildhost'
+VERSION = __version__ = (0, 0, 1, 'beta', 0)
 __author__ = 'sax'
 
 def get_version(version=None):
@@ -20,8 +19,9 @@ def get_version(version=None):
 
     sub = ''
     if version[3] == 'alpha' and version[4] == 0:
+        import bh
         path = bh.__path__[0]
-        head_path = '%s/../../.git/logs/HEAD' % path
+        head_path = '%s/../.git/logs/HEAD' % path
         try:
             for line in open(head_path): pass
             revision = line.split()[0]
