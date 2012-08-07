@@ -45,7 +45,7 @@ deactivate () {
 deactivate nondestructive
 
 SITE_ENV="{{base}}"
-export PASPORT_ENV
+export SITE_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
 _OLD_LD_LIBRARY_PATH=LD_LIBRARY_PATH
@@ -75,7 +75,7 @@ if [ -z "$SITE_ENV_DISABLE_PROMPT" ] ; then
         # see http://www.zetadev.com/software/aspen/
         PS1="[`basename \`dirname \"$SITE_ENV\"\``] $PS1"
     else
-        PS1="(`basename \"$PASPORT_ENV\"`)$PS1"
+        PS1="(`basename \"$SITE_ENV\"`)$PS1"
     fi
     fi
     export PS1
