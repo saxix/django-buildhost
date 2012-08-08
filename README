@@ -1,0 +1,20 @@
+=====
+=====
+
+
+
+Initialize host
+---------------
+
+user.init_home_env:8081
+
+
+
+Add environment
+---------------
+
+fab root.create_user:<USERNAME>,[<PASSWORD>]
+
+fab -H <USERNAME>@<HOST> user.init_home_env:<PORT>
+
+fab -H <USERNAME>@<HOST> system.sqlite system.python system.apache
