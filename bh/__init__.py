@@ -1,5 +1,5 @@
 NAME = 'django-buildhost'
-VERSION = __version__ = (0, 0, 1, 'beta', 0)
+VERSION = __version__ = (0, 0, 2, 'beta', 0)
 __author__ = 'sax'
 
 def get_version(version=None):
