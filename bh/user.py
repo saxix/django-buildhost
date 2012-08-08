@@ -6,7 +6,6 @@ from bh.utils import _upload_template, setup_env_for_user, save_password
 def passwd(newpassword):
     run(r'echo $USER:%s | chpasswd' % newpassword)
     env.passwords[env.host] = newpassword
-    print 111111111, env.passwords
     save_password('AAAAAAAA.json')
 
 @task
