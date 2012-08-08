@@ -27,8 +27,9 @@ def python():
     out = run('python -c "import socket;print socket.ssl"')
     assert out.startswith("<function ssl at "), out
 
-    run('python %(packages_cache)s/distribute_setup.py && easy_install pip' % env)
-    run('rm -f %(base)s/distribute-*' % env)
+    run('wget http://python-distribute.org/distribute_setup.py')
+    run('python distribute_setup.py')
+    run('easy_install -U pip')
     run('pip install ipython')
 
 
@@ -248,6 +249,15 @@ def copy_cmds():
     upload_template("tpls/sbin/all_env_command.sh", "%(PREFIX)s/sbin" % env, env, use_jinja=True)
     run('chmod +x %(PREFIX)s/sbin/*.sh' % env)
 
+@task
+def postgresql():
+#    run('wget http://ftp.postgresql.org/pub/source/v9.1.4/postgresql-9.1.4.tar.bz2')
+#    run('tar -xf postgresql-9.1.4.tar.bz2')
+
+    with cd('postgresql-9.1.4'):
+        run('./configure')
+        run('make')
+        run('make install')
 
 @task
 def install():
