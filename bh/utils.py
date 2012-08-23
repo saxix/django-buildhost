@@ -65,7 +65,7 @@ def pip_install(pkg, upgrade=False, mask='"%s"'):
     with settings(pkgs=pkgs, upgrade=up, alaska='http://wfpdevel:wfpdevel@alaska.k-tech.it/pypi/pasportng/'):
         run('pip install %(upgrade)s -f %(pypi)s -f %(alaska)s %(pkgs)s' % env)
 
-def check_no_pending_commit(package, halt=True):
+def check_no_pending_commit(package, halt=True, forceto=''):
     package_dir = os.path.realpath(os.path.join(os.path.dirname(package.__file__)))
     product_dir = os.path.join(package_dir, os.pardir)
     if halt:
@@ -81,7 +81,7 @@ def check_no_pending_commit(package, halt=True):
                         print 'Uncommitted files on ', product_dir
                         print r
                         exit_func(1)
-                elif os.path.exists(os.path.join(product_dir, '.git')):
+                elif os.path.exists(os.path.join(product_dir, '.git')) or forceto=='git':
                     r = local('git status -s', True)
                     if r != "":
                         print 'Uncommitted files on ', product_dir
@@ -93,11 +93,11 @@ def check_no_pending_commit(package, halt=True):
                         print r
                         exit_func(1)
                 else:
-                    print 'Error'
+                    print 'Error no valid SCM found'
                     sys.exit(1)
 
     else:
-        raise Exception('Wrong directory tree')
+        raise Exception('Wrong directory tree for (%s)' % package)
     return package_dir, product_dir
 
 

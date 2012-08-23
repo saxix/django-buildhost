@@ -134,8 +134,8 @@ def chown():
 
 
 def ubuntu_prereq():
-    reqs = ['gcc', 'build-essential', 'libaio-dev', 'libxml2-dev', 'libxslt1-dev', 'libsqlite-dev', 'curl', 'sqlite3',
-            'libssl-dev', 'libcurl4-openssl-dev', 'libsqlite3-dev', 'postgresql-server-dev-9.1']
+    reqs = ['gcc', 'build-essential', 'libaio-dev', 'libxml2-dev', 'libxslt1-dev',
+            'curl', 'libssl-dev', 'libcurl4-openssl-dev', 'postgresql-server-dev-9.1']
     with settings(reqs=" ".join(reqs)):
         sudo('apt-get -y --force-yes install %(reqs)s' % env)
 
@@ -144,7 +144,7 @@ def redhat_prereq():
     """ install redhat/centos packages required to compile """
     reqs = ['autoconf', 'bzip2-devel', 'db4-devel', 'expat-devel', 'findutils', 'gcc-c++', 'gdbm-devel', 'glibc-devel',
             'gmp-devel', 'libGL-devel', 'libX11-devel', 'libtermcap-devel', 'ncurses-devel', 'openssl-devel',
-            'pkgconfig', 'readline-devel', 'sqlite-devel', 'tar', 'tix-devel', 'tk-devel', 'zlib-devel', 'rpm-build',
+            'pkgconfig', 'readline-devel', 'tar', 'tix-devel', 'tk-devel', 'zlib-devel', 'rpm-build',
             'make', 'libxml2-devel', 'curl', 'libxslt-devel', 'postgresql-libs']
     with settings(reqs=" ".join(reqs)):
         sudo('yum -y install %(reqs)s' % env)
@@ -159,6 +159,9 @@ def copy_packages():
     """ copy local source code tarball to remote machine
     """
 #    for source, dest in [(env.local_tarball , env.packages_cache), ('pip_cache', env.pip_cache)]:
+    if not exists(env.packages_cache):
+        run('mkdir -p %(packages_cache)s' % env)
+
     for source, dest in [(env.local_tarball , env.packages_cache), ]:
         with lcd(source):
             packages = local('ls *', True)
