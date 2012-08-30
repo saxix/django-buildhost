@@ -251,13 +251,16 @@ def copy_cmds():
 
 @task
 def postgresql():
-#    run('wget http://ftp.postgresql.org/pub/source/v9.1.4/postgresql-9.1.4.tar.bz2')
-#    run('tar -xf postgresql-9.1.4.tar.bz2')
+    setup_env_for_user(env.user)
+    with cd(env.build):
+        run('wget http://ftp.postgresql.org/pub/source/v%(POSTGRES)s/postgresql-%(POSTGRES)s.tar.bz2' % env)
+        run('tar -xf postgresql-%(POSTGRES)s.tar.bz2' % env)
 
-    with cd('postgresql-9.1.4'):
-        run('./configure')
-        run('make')
-        run('make install')
+        with cd('postgresql-%(POSTGRES)s' % env):
+            run('./configure --prefix=%(base)s' % env)
+            run('make')
+            run('make install')
+        run('rm -fr postgresql-%(POSTGRES)s' % env)
 
 @task
 def install():
@@ -266,10 +269,9 @@ def install():
     this command
     """
     setup_env_for_user(env.user)
-
     execute(python)
-    execute(apache)
-    execute(modwsgi)
+#    execute(apache)
+#    execute(modwsgi)
 
 #    execute(oracle)
 #    execute(uwsgi)

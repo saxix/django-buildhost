@@ -13,3 +13,4 @@ env.SQLITE = 'sqlite-autoconf-3071300'
 env.APR = "apr-1.4.6"
 env.DISTRIBUTE = "distribute-0.6.24"
 env.PIP = "pip-1.0.2"
+env.POSTGRES="9.1.5"

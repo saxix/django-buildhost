@@ -8,8 +8,8 @@ deactivate () {
         export PATH
         unset _OLD_VIRTUAL_PATH
     fi
-    if [ -n "_OLD_LD_LIBRARY_PATH" ] ; then
-        LD_LIBRARY_PATH="_OLD_LD_LIBRARY_PATH"
+    if [ -n "$_OLD_LD_LIBRARY_PATH" ] ; then
+        LD_LIBRARY_PATH="$_OLD_LD_LIBRARY_PATH"
         export LD_LIBRARY_PATH
         unset _OLD_LD_LIBRARY_PATH
     fi
@@ -48,7 +48,7 @@ SITE_ENV="{{base}}"
 export SITE_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
-_OLD_LD_LIBRARY_PATH=LD_LIBRARY_PATH
+_OLD_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 PATH="$SITE_ENV/bin:$SITE_ENV/apache/bin:$PATH"
 export PATH
 export LD_LIBRARY_PATH=$SITE_ENV/lib:$SITE_ENV/oracle/instantclient_11_2
