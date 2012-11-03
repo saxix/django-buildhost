@@ -4,16 +4,21 @@ from fabric.contrib.files import upload_template, exists
 from bh.utils import as_bool
 from bh.user import setup_env_for_user
 
+
 @task
 def python():
     """ compile and install python
     """
     setup_env_for_user(env.user)
+    with cd('%(packages_cache)s' % env):
+        if not exists('Python-%(PYTHON)s.tgz' % env):
+            run('wget http://www.python.org/ftp/python/2.7.3/Python-%(PYTHON)s.tgz' % env)
+
     version = env.PYTHON.replace('Python-', '')
     run('mkdir -p %(admin_home_dir)s/~build' % env)
     with cd(env.build):
-        run('tar -xzf %(packages_cache)s/%(PYTHON)s.tgz' % env)
-        with cd(env.PYTHON):
+        run('tar -xzf %(packages_cache)s/Python-%(PYTHON)s.tgz' % env)
+        with cd('Python-%(PYTHON)s' % env):
             run('./configure --prefix=%(base)s --enable-shared --with-threads' % env)
             run('make clean')
             run('make')
@@ -56,6 +61,7 @@ def apache():
                 ' --includedir=%(base)s/lib/include/apache'\
                 ' --localstatedir=%(base)s/var/run'\
                 ' --enable-rewrite'\
+                ' --enable-headers'\
                 #                ' --enable-rewrite=shared'\
                 #                ' --enable-mods-shared=most'\
                 ' --with-included-apr'\
@@ -69,9 +75,16 @@ def apache():
 @task
 def sqlite():
     setup_env_for_user(env.user)
+
+
     run('mkdir -p %(admin_home_dir)s/~build' % env)
+    with cd('%(packages_cache)s' % env):
+        if not exists('%(SQLITE)s.tar.gz' % env):
+            run('wget http://fossies.org/unix/misc/%(SQLITE)s.tar.gz' % env)
+
     with cd(env.build):
         run('tar -xzf %(packages_cache)s/%(SQLITE)s.tar.gz' % env)
+        run('ls -al')
         with cd(env.SQLITE):
             run('./configure '\
                 ' --prefix=%(base)s'\
@@ -133,6 +146,12 @@ def oracle():
     """ compile and install oracle drivers
     """
     setup_env_for_user(env.user)
+    with cd('%(packages_cache)s' % env):
+        with settings(warn_only=True):
+            c = run('ls %(packages_cache)s/instantclient*' % env)
+            if not 'instantclient' in c:
+                put('%(tarball_dir)s/instantclient-*' % env, env.packages_cache)
+
     run('mkdir -p %(admin_home_dir)s/~build' % env)
     with cd(env.base):
         run('rm -fr oracle*')
@@ -142,7 +161,7 @@ def oracle():
             if arch == 'x86_64':
                 run('find %(packages_cache)s -name "instantclient*86-64*" -exec unzip "{}" \;' % env)
             elif arch == 'i386':
-                run('find %(packages_cache)s -name "instantclient*" -name "*86-64*" -exec unzip "{}" \;' % env)
+                run('find %(packages_cache)s -name "instantclient*" -not -name "*86-64*" -exec unzip "{}" \;' % env)
             with cd('instantclient_*'):
                 env.oracle_home = '%(base)s/oracle/instantclient_11_2' % env
                 run('ln -sf libclntsh.so.11.1 libclntsh.so')
@@ -165,11 +184,19 @@ def ngnix(recover=False, configure=True, make=True, install=True):
     _configure = as_bool(configure, True)
     _make = as_bool(make, True)
     _install = as_bool(install, True)
+    with cd(env.packages_cache):
+        if not exists('%(packages_cache)s/%(NGINX)s.tar.gz' % env):
+            run("wget http://nginx.org/download/%(NGINX)s.tar.gz" % env)
+        if not exists('%(packages_cache)s/pcre-%(PCRE)s.tar.gz' % env):
+            run("wget http://sourceforge.net/projects/pcre/files/pcre/%(PCRE)s/pcre-%(PCRE)s.tar.gz" % env)
+        if not exists('%(packages_cache)s/%(UWSGI)s.tar.gz' % env):
+            run("wget http://projects.unbit.it/downloads/%(UWSGI)s.tar.gz" % env)
+
+
     with cd(env.build):
-        if not _recover:
-            run("tar -xzf %(packages_cache)s/%(NGINX)s.tar.gz" % env)
-            run("tar -xzf %(packages_cache)s/pcre-%(PCRE)s.tar.gz" % env)
-            run("tar -xzf %(packages_cache)s/%(UWSGI)s.tar.gz" % env)
+        run("tar -xzf %(packages_cache)s/%(NGINX)s.tar.gz" % env)
+        run("tar -xzf %(packages_cache)s/pcre-%(PCRE)s.tar.gz" % env)
+        run("tar -xzf %(packages_cache)s/%(UWSGI)s.tar.gz" % env)
 
         with cd(env.NGINX):
             if _configure:
@@ -250,10 +277,23 @@ def copy_cmds():
     run('chmod +x %(PREFIX)s/sbin/*.sh' % env)
 
 @task
+def openldap():
+    setup_env_for_user(env.user)
+    run('mkdir -p %(build)s' % env )
+    with cd(env.build):
+#        run('wget ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release/openldap-2.4.9.tgz')
+        run('tar xzvf openldap-2.4.9.tgz')
+        with cd('openldap-2.4.9'):
+            run('./configure --prefix=%(base)s' % env)
+            run('make')
+            run('make install')
+@task
 def postgresql():
     setup_env_for_user(env.user)
+    run('mkdir -p %(build)s' % env )
     with cd(env.build):
-        run('wget http://ftp.postgresql.org/pub/source/v%(POSTGRES)s/postgresql-%(POSTGRES)s.tar.bz2' % env)
+        if not exists('postgresql-%(POSTGRES)s.tar.bz2' % env):
+            run('wget http://ftp.postgresql.org/pub/source/v%(POSTGRES)s/postgresql-%(POSTGRES)s.tar.bz2' % env)
         run('tar -xf postgresql-%(POSTGRES)s.tar.bz2' % env)
 
         with cd('postgresql-%(POSTGRES)s' % env):

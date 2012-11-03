@@ -23,7 +23,7 @@ def init():
     env.packages_cache = "%s/packages_cache" % env.PREFIX
     env.pip_cache = "%s/pip_download_cache" % env.PREFIX
     env.template_dir = os.path.join(os.path.dirname(__file__), 'tpls')
-
+    env.tarball_dir = os.path.join(os.path.dirname(__file__), 'tarballs')
 
 
 def usudo(command, shell=True, pty=True, combine_stderr=None, user=None):
@@ -42,7 +42,8 @@ def as_bool(value, default):
         return bool(value)
 
 def _upload_template( name, dest, **kwargs ):
-    upload_template(name % env, dest % env, env, use_jinja=True, template_dir=env.template_dir, **kwargs)
+    tpl_dir = kwargs.pop('template_dir', env.template_dir)
+    upload_template(name % env, dest % env, env, use_jinja=True, template_dir=tpl_dir, **kwargs)
 
 
 def setup_env_for_user(admin=None):

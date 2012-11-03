@@ -134,7 +134,8 @@ def chown():
 
 
 def ubuntu_prereq():
-    reqs = ['gcc', 'build-essential', 'libaio-dev', 'libxml2-dev', 'libxslt1-dev',
+    reqs = ['gcc', 'build-essential', 'libaio-dev', 'libxml2-dev', 'libxslt1-dev', 'libreadline-dev',
+            'libbz2-dev',
             'curl', 'libssl-dev', 'libcurl4-openssl-dev', 'libldap2-dev', 'libsasl2-dev']
     with settings(reqs=" ".join(reqs)):
         sudo('apt-get -y --force-yes install %(reqs)s' % env)
@@ -144,6 +145,7 @@ def redhat_prereq():
     """ install redhat/centos packages required to compile """
     reqs = ['autoconf', 'bzip2-devel', 'db4-devel', 'expat-devel', 'findutils', 'gcc-c++', 'gdbm-devel', 'glibc-devel',
             'gmp-devel', 'libGL-devel', 'libX11-devel', 'libtermcap-devel', 'ncurses-devel', 'openssl-devel',
+            'libbz2-devel',
             'pkgconfig', 'readline-devel', 'tar', 'tix-devel', 'tk-devel', 'zlib-devel', 'rpm-build',
             'make', 'libxml2-devel', 'curl', 'libxslt-devel', 'postgresql-libs',
             'openldap-devel']
