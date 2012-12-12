@@ -46,14 +46,25 @@ def _upload_template( name, dest, **kwargs ):
     upload_template(name % env, dest % env, env, use_jinja=True, template_dir=tpl_dir, **kwargs)
 
 
+def get_env(name, default=None):
+    ret = run("echo $%s" % name)
+    return ret.strip() or default
+
 def setup_env_for_user(admin=None):
     """ setup enviroment for the selected admin.
     Must be called before each task.
     """
-    admin = admin or env.user
     assert admin != 'root', "Cannot use root for this task"
-    env.admin = admin
-    env.admin_home_dir = get_home_dir(env.admin)
+
+    if admin is not None:
+        env.admin = admin
+        env.admin_home_dir = get_home_dir(env.admin)
+    else:
+        env.admin = env.user
+        env.admin_home_dir = get_env('HOME', get_home_dir(env.admin))
+
+
+
     env.base = env.admin_home_dir
     env.build = os.path.join(env.base, '~build')
 

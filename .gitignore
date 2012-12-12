@@ -12,4 +12,4 @@ local_settings.py
 /dist
 /docs/build
 *.egg-info
-
+/bh/tarballs/*

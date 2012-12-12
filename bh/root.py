@@ -49,7 +49,6 @@ def init_env():
     sudo('chmod g+rw,o-rw %(pip_cache)s' % env)
     sudo('chmod g+rw,o-rw %(packages_cache)s' % env)
 
-    copy_packages()
     install_libraries()
     upload_common_task()
 
@@ -86,7 +85,6 @@ def user_create(admin, password='123'):
     """ create a user
 
     """
-
     if not contains("/etc/passwd", "^%s:" % admin):
         with settings(admin=admin):
             sudo('useradd -g %(group)s %(admin)s -M -g %(group)s' % env )
@@ -137,6 +135,7 @@ def ubuntu_prereq():
     reqs = ['gcc', 'build-essential', 'libaio-dev', 'libxml2-dev', 'libxslt1-dev', 'libreadline-dev',
             'libbz2-dev',
             'curl', 'libssl-dev', 'libcurl4-openssl-dev', 'libldap2-dev', 'libsasl2-dev']
+    sudo('apt-get update')
     with settings(reqs=" ".join(reqs)):
         sudo('apt-get -y --force-yes install %(reqs)s' % env)
 
@@ -178,10 +177,10 @@ def copy_packages():
 
 @task
 def upload_common_task():
-    _upload_template("sbin/all_env_command.sh", "%(PREFIX)s/sbin/all_env_command.sh" % env)
-    _upload_template("sbin/cronhandler.sh", "%(PREFIX)s/sbin/cronhandler.sh" % env)
-    run('chmod ugo+x-rw %(PREFIX)s/sbin' % env)
-    run('chmod ugo-rw,o-rw+x %(PREFIX)s/sbin/*' % env)
+    _upload_template("sbin/all_env_command.sh", "%(PREFIX)s/sbin/all_env_command.sh" % env, use_sudo=True)
+    _upload_template("sbin/cronhandler.sh", "%(PREFIX)s/sbin/cronhandler.sh" % env, use_sudo=True)
+    sudo('chmod ugo+x-rw %(PREFIX)s/sbin' % env)
+    sudo('chmod ugo-rw,o-rw+x %(PREFIX)s/sbin/*' % env)
 
 
 

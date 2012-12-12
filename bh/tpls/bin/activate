@@ -51,7 +51,7 @@ _OLD_VIRTUAL_PATH="$PATH"
 _OLD_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 PATH="$SITE_ENV/bin:$SITE_ENV/apache/bin:$PATH"
 export PATH
-export LD_LIBRARY_PATH=$SITE_ENV/lib:$SITE_ENV/oracle/instantclient_11_2
+export LD_LIBRARY_PATH=$SITE_ENV/lib:$SITE_ENV/oracle/instantclient_11_2:
 export ORACLE_HOME=$SITE_ENV/oracle/instantclient_11_2
 export SITE_LOGDIR=$SITE_ENV/logs/
 export PYTHONPATH=$SITE_ENV/etc/:$PYTHONPATH
