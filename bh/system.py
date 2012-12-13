@@ -199,8 +199,8 @@ def ngnix():
                 run("mkdir -p %(prefix)s/tmp" % env)
                 run("./configure --prefix=%(prefix)s"
                     " --sbin-path=%(prefix)s/ngnix"
-                    " --pid-path=%(prefix)s/run/nginx.pid"
-                    " --lock-path=%(prefix)s/run/nginx.lck"
+                    " --pid-path=%(prefix)s/run/ngnix.pid"
+                    " --lock-path=%(prefix)s/run/ngnix.lck"
 #                    " --user=ngnix"
                     " --group=%(group)s"
                     " --with-debug "
@@ -221,8 +221,8 @@ def ngnix():
                     " --http-fastcgi-temp-path=%(prefix)s/tmp/fcgi/"\
                     " --http-uwsgi-temp-path=%(prefix)s/tmp/uwsgi/"\
                     " --http-scgi-temp-path=%(prefix)s/tmp/scgi/"\
-                    " --http-log-path=%(prefix)s/logs/nginx/access.log"\
-                    " --error-log-path=%(prefix)s/logs/nginx/error.log"\
+                    " --http-log-path=%(prefix)s/logs/ngnix/access.log"\
+                    " --error-log-path=%(prefix)s/logs/ngnix/error.log"\
                     " --with-pcre=../pcre-%(PCRE)s" % env
                 )
                 run("make")
