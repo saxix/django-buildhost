@@ -43,6 +43,9 @@ def apache():
     """ compile and install apache
     """
     setup_env_for_user(env.user)
+    with cd('%(packages_cache)s' % env):
+        if not exists('%(APACHE)s.tar.gz' % env):
+            run('wget http://mirrors.issp.co.th/apache//httpd/%(APACHE)s.tar.gz' % env)
 
     run('mkdir -p %(admin_home_dir)s/~build' % env)
     run('mkdir -p %(admin_home_dir)s/etc/httpd/conf.d' % env)
@@ -62,8 +65,6 @@ def apache():
                 ' --localstatedir=%(base)s/var/run'\
                 ' --enable-rewrite'\
                 ' --enable-headers'\
-                #                ' --enable-rewrite=shared'\
-                #                ' --enable-mods-shared=most'\
                 ' --with-included-apr'\
                 ' --enable-ssl'
                 % env)
@@ -95,7 +96,6 @@ def sqlite():
             run('sqlite3 -version')
 
 
-
 @task
 def uwsgi():
     """ compile and install uwsgi
@@ -116,6 +116,11 @@ def modwsgi():
     """ compile and install modwsgi
     """
     setup_env_for_user(env.user)
+    with cd('%(packages_cache)s' % env):
+        if not exists('%(MOD_WSGI)s.tar.gz' % env):
+            put('%(tarball_dir)s/%(MOD_WSGI)s.tar.gz' % env, env.packages_cache)
+        #            run('wget http://mirrors.issp.co.th/apache//httpd/%(APACHE)s.tar.gz' % env)
+
     run('mkdir -p %(admin_home_dir)s/~build' % env)
     with cd(env.build):
         run('tar xvfz %(packages_cache)s/%(MOD_WSGI)s.tar.gz' % env)
@@ -137,7 +142,7 @@ def sqlplus():
     with cd('~/~build/sqlplus'):
         run('ls')
         run('unzip %s' % tar)
-        run('cp instantclient_11_2/* ~/oracle/instantclient_11_2/')
+        run('cp -f instantclient_11_2/* ~/oracle/instantclient_11_2/')
         run('mv ~/oracle/instantclient_11_2/sqlplus ~/bin/sqlplus')
     run('sqlplus  -V') # simple check
 
@@ -149,16 +154,19 @@ def oracle():
     setup_env_for_user(env.user)
     with cd('%(packages_cache)s' % env):
         with settings(warn_only=True):
-            c = run('ls %(packages_cache)s/instantclient*' % env)
-            if not 'instantclient' in c:
-                put('%(tarball_dir)s/instantclient-*' % env, env.packages_cache)
+            arch = run('uname -i')
+            if arch == 'x86_64':
+                c = run('find %(packages_cache)s -name "instantclient*86-64*"' % env)
+            elif arch == 'i386':
+                run('find %(packages_cache)s -name "instantclient*" -not -name "*86-64*"' % env)
+        if not 'instantclient' in c:
+            put('%(tarball_dir)s/instantclient-*' % env, env.packages_cache)
 
     run('mkdir -p %(admin_home_dir)s/~build' % env)
     with cd(env.base):
         run('rm -fr oracle*')
         run('mkdir -p oracle')
         with cd('oracle'):
-            arch = run('uname -i')
             if arch == 'x86_64':
                 run('find %(packages_cache)s -name "instantclient*86-64*" -exec unzip "{}" \;' % env)
             elif arch == 'i386':
@@ -194,14 +202,14 @@ def ngnix():
         run("tar -xzf %(NGINX)s.tar.gz" % env)
         run("tar -xzf pcre-%(PCRE)s.tar.gz" % env)
         run("tar -xzf %(UWSGI)s.tar.gz" % env)
-        with settings(prefix= "%s/opt/ngnix" % env.base):
+        with settings(prefix="%s/opt/ngnix" % env.base):
             with cd(env.NGINX):
                 run("mkdir -p %(prefix)s/tmp" % env)
                 run("./configure --prefix=%(prefix)s"
                     " --sbin-path=%(prefix)s/ngnix"
                     " --pid-path=%(prefix)s/run/ngnix.pid"
                     " --lock-path=%(prefix)s/run/ngnix.lck"
-#                    " --user=ngnix"
+                    #                    " --user=ngnix"
                     " --group=%(group)s"
                     " --with-debug "
                     " --with-select_module"
@@ -228,11 +236,12 @@ def ngnix():
                 run("make")
                 run("make install")
 
-            path=run('echo $PATH')
+            path = run('echo $PATH')
             if env.prefix not in path:
                 sed('~/.bashrc',
                     'export PATH=(.*)',
                     r'export PATH=\1:%(prefix)s' % env)
+
 
 @task
 def check():
@@ -275,6 +284,7 @@ def copy_cmds():
     upload_template("tpls/sbin/all_env_command.sh", "%(PREFIX)s/sbin" % env, env, use_jinja=True)
     run('chmod +x %(PREFIX)s/sbin/*.sh' % env)
 
+
 @task
 def openldap():
     setup_env_for_user(env.user)
@@ -292,8 +302,6 @@ def openldap():
 
         if not exists('libtool-%(LIBTOOL)s.tar.gz' % env):
             run('wget http://ftp.gnu.org/gnu/libtool/libtool-%(LIBTOOL)s.tar.gz' % env)
-
-
 
     with cd(env.build):
         run("tar -xzf db-%(BERKELEY)s.tar.gz" % env)
@@ -315,7 +323,8 @@ def openldap():
             run('make check')
             run('make install')
         run("tar -xzf openldap-%(OPENLDAP)s.tgz" % env)
-        with prefix('export CPPFLAGS="-I%(base)s/dbd/include -I";export LDFLAGS="-L%(base)s/dbd/lib -R%(base)s/dbd/lib"' % env):
+        with prefix(
+            'export CPPFLAGS="-I%(base)s/dbd/include -I";export LDFLAGS="-L%(base)s/dbd/lib -R%(base)s/dbd/lib"' % env):
             with prefix(
                 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%(base)s/~build/db-%(BERKELEY)s/build_unix/.libs:%(base)s/dbd/lib' % env):
                 with cd('openldap-%(OPENLDAP)s' % env):
@@ -345,6 +354,7 @@ def openldap():
                     sed('setup.cfg', '^include_dirs.*', 'include_dirs=%(base)s/dbd/include' % env)
                     run('python setup.py install')
 
+
 @task
 def odbc():
     setup_env_for_user(env.user)
@@ -362,11 +372,12 @@ def odbc():
             run('ln -fs libodbc.so libodbc.so.1')
             run('ln -fs libodbcinst.so libodbcinst.so.1')
 
-        ldl=run('echo $LD_LIBRARY_PATH')
+        ldl = run('echo $LD_LIBRARY_PATH')
         if '%(base)s/opt/odbc/lib' % env not in ldl:
             sed('~/.bashrc',
                 'export LD_LIBRARY_PATH=(.*)',
                 r'export LD_LIBRARY_PATH=\1:$HOME/opt/odbc/lib' % env)
+
 
 @task
 def psqlodbc():
@@ -376,7 +387,7 @@ def psqlodbc():
             run('wget http://ftp.postgresql.org/pub/odbc/versions/src/psqlodbc-%(PSQLODBC)s.tar.gz' % env)
         run('tar -xzf psqlodbc-*.tar.gz ')
 
-        ldl=run('echo $LD_LIBRARY_PATH')
+        ldl = run('echo $LD_LIBRARY_PATH')
         if '%(base)s/opt/odbc/lib' % env not in ldl:
             sed('~/.bashrc',
                 'export LD_LIBRARY_PATH=(.*)',
@@ -387,7 +398,7 @@ def psqlodbc():
                 'export LD_LIBRARY_PATH=(.*)',
                 r'export LD_LIBRARY_PATH=\1:$HOME/pgsql/lib' % env)
 
-        path=run('echo $PATH')
+        path = run('echo $PATH')
         if r':$HOME/opt/odbc/bin' not in path:
             sed('~/.bashrc',
                 'export PATH=(.*)',
@@ -403,7 +414,7 @@ def psqlodbc():
             run('make')
             run('make install')
 
-        ldl=run('echo $LD_LIBRARY_PATH')
+        ldl = run('echo $LD_LIBRARY_PATH')
         if ':$HOME/opt/psqlodbc/lib' % env not in ldl:
             sed('~/.bashrc',
                 'export LD_LIBRARY_PATH=(.*)',
@@ -440,9 +451,10 @@ def postgresql(port=5432):
 
     if not exists('~/data'):
         run('~/pgsql/bin/initdb -D ~/data')
-#    sed('~/data/postgresql.conf', '#*port.*', r'port=%s'% port)
-#    sed('~/data/postgresql.conf', '#*listen_addresses.*', r'listen_addresses=*')
-#    run('~/pgsql/bin/postmaster --config-file=data/postgresql.conf -D ~/data')
+
+    sed('~/data/postgresql.conf', '#*port.*', r'port=%s' % port)
+    #    sed('~/data/postgresql.conf', '#*listen_addresses.*', r"listen_addresses='*'")
+    run('~/pgsql/bin/postmaster --config-file=data/postgresql.conf -D ~/data')
     run('cp ~/pgsql/share/pg_hba.conf.sample  ~/data/pg_hba.conf')
     sed('~/data/pg_hba.conf', '@remove-line-for-nolocal@(.*)', r'\1')
     sed('~/data/pg_hba.conf', '@authmethod@', r'password')
@@ -450,29 +462,30 @@ def postgresql(port=5432):
 
     sed('~/data/pg_hba.conf', '@authcomment@', '')
 
+    with settings(warn_only=True):
+        run('~/pgsql/bin/initdb -D ~/data')
 
     run('cp ~/pgsql/share/pg_service.conf.sample ~/data/pg_service.conf')
     run('cp ~/pgsql/share/pg_ident.conf.sample ~/data/pg_ident.conf')
-    run('~/pgsql/bin/pg_ctl start -W -D ~/data/ -l ~/data/logfile.log')
+#    run('~/pgsql/bin/pg_ctl start -W -D ~/data/ -l ~/data/logfile.log')
 
-    ldl=run('echo $LD_LIBRARY_PATH')
+    ldl = run('echo $LD_LIBRARY_PATH')
     if '$HOME/pgsql/lib' % env not in ldl:
         sed('~/.bashrc',
             'export LD_LIBRARY_PATH=(.*)',
             r'export LD_LIBRARY_PATH=\1:$HOME/pgsql/lib' % env)
 
-    path=run('echo $PATH')
+    path = run('echo $PATH')
     if r':$HOME/pgsql/bin' not in path:
         sed('~/.bashrc',
             'export PATH=(.*)',
             r'export PATH=\1:$HOME/pgsql/bin')
 
 
-
 @task
 def clean():
     setup_env_for_user(env.user)
-    run('rm -fr %(build)s' % env )
+    run('rm -fr %(build)s' % env)
 
 
 @task
@@ -492,16 +505,17 @@ def all():
     this command
     """
     setup_env_for_user(env.user)
+
     execute(sqlite)
     execute(odbc)
-    execute(postgresql)
+    execute(postgresql, port=int(env.http_port) + 1000)
     execute(psqlodbc)
     execute(python)
 
     execute(oracle)
     execute(sqlplus)
 
-    execute(openldap)
+    #    execute(openldap)
 
     execute(uwsgi)
     execute(ngnix)

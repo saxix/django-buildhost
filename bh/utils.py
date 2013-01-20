@@ -78,38 +78,38 @@ def pip_install(pkg, upgrade=False, mask='"%s"'):
         run('pip install %(upgrade)s -f %(pypi)s -f %(alaska)s %(pkgs)s' % env)
 
 def check_no_pending_commit(package, halt=True, forceto=''):
+
     package_dir = os.path.realpath(os.path.join(os.path.dirname(package.__file__)))
     product_dir = os.path.join(package_dir, os.pardir)
     if halt:
         exit_func=sys.exit
     else:
         exit_func = lambda x:x
+
     if os.path.isfile(os.path.join(product_dir, 'setup.py')):
         with lcd(product_dir):
-            with hide('running', 'stdout', 'stderr'):
-                if os.path.exists(os.path.join(product_dir, '.svn')):
-                    r = local('svn status', True)
-                    if r != "":
-                        print 'Uncommitted files on ', product_dir
-                        print r
-                        exit_func(1)
-                elif os.path.exists(os.path.join(product_dir, '.git')) or forceto=='git':
-                    r = local('git status -s', True)
-                    if r != "":
-                        print 'Uncommitted files on ', product_dir
-                        print r
-                        exit_func(1)
-                    r = local('git diff --stat origin/master', True)
-                    if r != "":
-                        print 'Pending commits to push ', product_dir
-                        print r
-                        exit_func(1)
-                else:
-                    print 'Error no valid SCM found'
-                    sys.exit(1)
+            r = local('svn status', True)
+            if bool(r):
+                print 'Uncommitted files on ', product_dir
+                print r
+                exit_func(1)
+            else:
+                r = local('git status -s', True)
+                if bool(r):
+                    print 'Uncommitted files on ', product_dir
+                    print r
+                    exit_func(1)
+                r = local('git diff --stat origin/master', True)
+                if bool(r):
+                    print 'Pending commits to push ', product_dir
+                    print r
+                    exit_func(1)
+            print 'Error no valid SCM found in `%s`' % product_dir
+            sys.exit(1)
 
     else:
         raise Exception('Wrong directory tree for (%s)' % package)
+
     return package_dir, product_dir
 
 

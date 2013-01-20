@@ -20,11 +20,6 @@ def allenv(cmd):
         print('%(PREFIX)s/sbin/all_env_shell.sh %(xcmd)s' % env)
 
 @task
-def allenv(cmd):
-    with settings(xcmd=cmd):
-        print('%(PREFIX)s/sbin/all_env_shell.sh %(xcmd)s' % env)
-
-@task
 def init_env():
     """ create common artifacts on the target host
 

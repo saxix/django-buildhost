@@ -44,3 +44,15 @@ def fixssh():
     run('chmod 600 ~/.ssh/id*')
     run('chmod 644 ~/.ssh/*.pub')
     run('chmod go-w . ~/.ssh ~/.ssh/authorized_keys')
+
+
+@task
+def chown():
+    """ setup right permission on the install dir
+    """
+    setup_env_for_user()
+    run('chown -R :%(group)s %(PREFIX)s' % env)
+    run('chmod g+rwx %(PREFIX)s' % env)
+
+    run('chown -R %(admin)s:%(group)s %(admin_home_dir)s' % env)
+    run('chmod -R ug+rwx %(admin_home_dir)s ' % env)
