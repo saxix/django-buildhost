@@ -21,6 +21,7 @@ def init_home_env(base_port):
     _upload_template("home/django_bash_completion", "%(base)s/.django_bash_completion")
 #    _upload_template("httpd.conf", "%(base)s/etc/httpd/conf/httpd.conf")
     bin_utils(env.http_port)
+    chown()
 
 @task(alias='bin')
 def bin_utils(port=None):
@@ -51,8 +52,8 @@ def chown():
     """ setup right permission on the install dir
     """
     setup_env_for_user()
-    run('chown -R :%(group)s %(PREFIX)s' % env)
-    run('chmod g+rwx %(PREFIX)s' % env)
+    # run('chown -R :%(group)s %(PREFIX)s' % env)
+    # run('chmod g+rwx %(PREFIX)s' % env)
 
     run('chown -R %(admin)s:%(group)s %(admin_home_dir)s' % env)
     run('chmod -R ug+rwx %(admin_home_dir)s ' % env)

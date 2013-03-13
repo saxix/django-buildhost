@@ -1,7 +1,7 @@
 from fabric.api import *
 from fabric.colors import green, red
 from fabric.contrib.files import upload_template, exists, sed
-from bh.utils import as_bool
+from bh.utils import as_bool, get_env
 from bh.user import setup_env_for_user
 
 
@@ -134,16 +134,23 @@ def modwsgi():
 @task
 def sqlplus():
     setup_env_for_user(env.user)
-    tar = env.deps['sqlplus']
+    with cd('%(packages_cache)s' % env):
+        with settings(warn_only=True):
+            arch = run('uname -i')
+            if arch == 'x86_64':
+                c = run('find %(packages_cache)s -name "instantclient*86-64*"' % env)
+            elif arch == 'i386':
+                run('find %(packages_cache)s -name "instantclient*" -not -name "*86-64*"' % env)
+        if not 'instantclient' in c:
+            put('%(tarball_dir)s/instantclient-*' % env, env.packages_cache)
+
     run('rm -fr ~/~build/sqlplus')
     run('mkdir -p ~/~build/sqlplus')
-    with settings(tar=tar):
-        put('%(tarballs)s/%(tar)s' % env, '~/~build/sqlplus/')
     with cd('~/~build/sqlplus'):
-        run('ls')
-        run('unzip %s' % tar)
-        run('cp -f instantclient_11_2/* ~/oracle/instantclient_11_2/')
-        run('mv ~/oracle/instantclient_11_2/sqlplus ~/bin/sqlplus')
+        with cd(env.base):
+            with cd('oracle'):
+                # run('cp -f instantclient_11_2/* ~/oracle/instantclient_11_2/')
+                run('mv ~/oracle/instantclient_11_2/sqlplus ~/bin/sqlplus')
     run('sqlplus  -V') # simple check
 
 
@@ -376,7 +383,7 @@ def odbc():
         if '%(base)s/opt/odbc/lib' % env not in ldl:
             sed('~/.bashrc',
                 'export LD_LIBRARY_PATH=(.*)',
-                r'export LD_LIBRARY_PATH=\1:$HOME/opt/odbc/lib' % env)
+                r'export LD_LIBRARY_PATH=\1:$HOME/opt/odbc/lib')
 
 
 @task
@@ -388,10 +395,11 @@ def psqlodbc():
         run('tar -xzf psqlodbc-*.tar.gz ')
 
         ldl = run('echo $LD_LIBRARY_PATH')
+
         if '%(base)s/opt/odbc/lib' % env not in ldl:
             sed('~/.bashrc',
                 'export LD_LIBRARY_PATH=(.*)',
-                r'export LD_LIBRARY_PATH=\1:$HOME/opt/odbc/lib' % env)
+                r'export LD_LIBRARY_PATH=\1:$HOME/opt/odbc/lib')
 
         if '$HOME/pgsql/lib' % env not in ldl:
             sed('~/.bashrc',
@@ -404,15 +412,16 @@ def psqlodbc():
                 'export PATH=(.*)',
                 r'export PATH=\1:$HOME/opt/odbc/bin')
 
-        with cd('psqlodbc-%(PSQLODBC)s' % env):
-            run('./configure '
-                ' --prefix=%(base)s/opt/psqlodbc'
-                ' --with-libpq=%(base)s/pgsql'
-                ' --with-unixodbc=%(base)s/opt/odbc'
-                ' --enable-pthreads'
-                % env)
-            run('make')
-            run('make install')
+        with prefix('source ~/.bashrc'):
+            with cd('psqlodbc-%(PSQLODBC)s' % env):
+                run('./configure '
+                    ' --prefix=%(base)s/opt/psqlodbc'
+                    ' --with-libpq=%(base)s/pgsql'
+                    ' --with-unixodbc=%(base)s/opt/odbc'
+                    ' --enable-pthreads'
+                    % env)
+                run('make')
+                run('make install')
 
         ldl = run('echo $LD_LIBRARY_PATH')
         if ':$HOME/opt/psqlodbc/lib' % env not in ldl:
@@ -454,7 +463,7 @@ def postgresql(port=5432):
 
     sed('~/data/postgresql.conf', '#*port.*', r'port=%s' % port)
     #    sed('~/data/postgresql.conf', '#*listen_addresses.*', r"listen_addresses='*'")
-    run('~/pgsql/bin/postmaster --config-file=data/postgresql.conf -D ~/data')
+    # run('~/pgsql/bin/postmaster --config-file=data/postgresql.conf -D ~/data')
     run('cp ~/pgsql/share/pg_hba.conf.sample  ~/data/pg_hba.conf')
     sed('~/data/pg_hba.conf', '@remove-line-for-nolocal@(.*)', r'\1')
     sed('~/data/pg_hba.conf', '@authmethod@', r'password')
@@ -498,27 +507,27 @@ def base():
     execute(ngnix)
 
 
-@task
-def all():
-    """ install all required servers/appliance
-
-    this command
-    """
-    setup_env_for_user(env.user)
-
-    execute(sqlite)
-    execute(odbc)
-    execute(postgresql, port=int(env.http_port) + 1000)
-    execute(psqlodbc)
-    execute(python)
-
-    execute(oracle)
-    execute(sqlplus)
-
-    #    execute(openldap)
-
-    execute(uwsgi)
-    execute(ngnix)
-
-    execute(apache)
-    execute(modwsgi)
+# @task
+# def all():
+#     """ install all required servers/appliance
+#
+#     this command
+#     """
+#     setup_env_for_user(env.user)
+#
+#     execute(sqlite)
+#     execute(odbc)
+#     execute(postgresql, port=int(get_env('HTTP_LISTEN_PORT')) + 1000)
+#     # execute(psqlodbc)
+#     execute(python)
+#
+#     execute(oracle)
+#     # execute(sqlplus)
+#
+#     # execute(openldap)
+#
+#     execute(uwsgi)
+#     execute(ngnix)
+#
+#     execute(apache)
+#     execute(modwsgi)
