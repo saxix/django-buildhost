@@ -58,12 +58,11 @@ def setup_env_for_user(admin=None):
 
     if admin is not None:
         env.admin = admin
-        env.admin_home_dir = get_home_dir(env.admin)
+        row = run('cat /etc/passwd | grep %s' % admin )
+        env.admin_home_dir = row.split(':')[5]
     else:
         env.admin = env.user
-        env.admin_home_dir = get_env('HOME', get_home_dir(env.admin))
-
-
+        env.admin_home_dir = get_env('HOME')
 
     env.base = env.admin_home_dir
     env.build = os.path.join(env.base, '~build')

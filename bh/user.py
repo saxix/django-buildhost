@@ -36,7 +36,7 @@ def bin_utils(port=None):
 
 @task
 def ssh():
-    run('ssh-keygen -N "" -t rsa -f ~/.ssh/id_rsa.pub')
+    run('ssh-keygen -N "" -t rsa -f ~/.ssh/id_rsa')
     local('ssh-copy-id -i ~/.ssh/id_rsa.pub %(user)s@%(host)s' % env)
 
 @task

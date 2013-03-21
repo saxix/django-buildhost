@@ -274,7 +274,7 @@ def check():
         _test('which python', '%(base)s/bin/python' % env)
         _test('which pip', '%(base)s/bin/pip' % env)
 
-        _test('python -V', 'Python 2.7.2')
+        _test('python -V', 'Python 2.7.3')
         _test('python -c "import cx_Oracle;print(\'cx_Oracle imported\')"', 'cx_Oracle imported')
         _test('python -c "import socket;print socket.ssl"', '<function ssl at')
 
