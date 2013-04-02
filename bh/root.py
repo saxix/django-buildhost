@@ -3,7 +3,7 @@ import re
 import os
 from fabric.api import *
 from fabric.contrib.files import contains, exists
-from bh.utils import _upload_template, setup_env_for_user
+from bh.utils import _upload_template, setup_env_for_user, get_home_dir
 
 @task
 def du():
@@ -88,7 +88,8 @@ def user_create(admin, password='123'):
         assert re.search(r"\%(group)s\b" % env, out) # check the user in pasport group
 
     setup_env_for_user(admin)
-    user_setup( admin, password )
+    admin_home_dir = get_home_dir(admin)
+    user_setup( admin, password, admin_home_dir )
 
 @task
 def user_remove(admin):
@@ -100,14 +101,15 @@ def user_remove(admin):
     run('rm -fr %(admin_home_dir)s' % env)
 
 @task
-def user_setup(admin, password='123'):
+def user_setup(admin, password='123', home_dir=None):
     """ reinitialize user environment homedir and password
     """
-    setup_env_for_user(admin)
-    with settings(pwd=crypt.crypt(password, ".sax/")):
+    setup_env_for_user(admin, home_dir)
+    home = home_dir or env.admin_home_dir
+    with settings(pwd=crypt.crypt(password, ".sax/"), home=home):
         sudo('mkdir -p %(admin_home_dir)s' % env)
         sudo('touch %(admin_home_dir)s/.scout' % env)
-        sudo('usermod -p "%(pwd)s" -g %(group)s -d %(admin_home_dir)s -s /bin/bash %(admin)s' % env)
+        sudo('usermod -p "%(pwd)s" -g %(group)s -d %(home)s -s /bin/bash %(admin)s' % env)
     sudo('touch %(admin_home_dir)s/.scout' % env)
     chown()
 

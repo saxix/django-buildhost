@@ -50,7 +50,7 @@ def get_env(name, default=None):
     ret = run("echo $%s" % name)
     return ret.strip() or default
 
-def setup_env_for_user(admin=None):
+def setup_env_for_user(admin=None, home_dir=None):
     """ setup enviroment for the selected admin.
     Must be called before each task.
     """
@@ -59,7 +59,7 @@ def setup_env_for_user(admin=None):
     if admin is not None:
         env.admin = admin
         row = run('cat /etc/passwd | grep %s' % admin )
-        env.admin_home_dir = row.split(':')[5]
+        env.admin_home_dir = home_dir or row.split(':')[5]
     else:
         env.admin = env.user
         env.admin_home_dir = get_env('HOME')
