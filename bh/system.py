@@ -10,14 +10,16 @@ def python():
     """ compile and install python
     """
     setup_env_for_user(env.user)
-    with cd(env.build):
+    run('mkdir -p %(admin_home_dir)s/~build' % env)
+
+    with cd(env.packages_cache):
         if not exists('Python-%(PYTHON)s.tgz' % env):
             run('wget http://www.python.org/ftp/python/2.7.3/Python-%(PYTHON)s.tgz' % env)
 
     version = env.PYTHON.replace('Python-', '')
-    run('mkdir -p %(admin_home_dir)s/~build' % env)
+
     with cd(env.build):
-        run('tar -xzf Python-%(PYTHON)s.tgz' % env)
+        run('tar -xzf %(packages_cache)s/Python-%(PYTHON)s.tgz' % env)
         with cd('Python-%(PYTHON)s' % env):
             run('./configure --prefix=%(base)s --enable-shared --with-threads' % env)
             run('make clean')
@@ -43,11 +45,12 @@ def apache():
     """ compile and install apache
     """
     setup_env_for_user(env.user)
+    run('mkdir -p %(admin_home_dir)s/~build' % env)
+
     with cd('%(packages_cache)s' % env):
         if not exists('%(APACHE)s.tar.gz' % env):
             run('wget http://mirrors.issp.co.th/apache//httpd/%(APACHE)s.tar.gz' % env)
 
-    run('mkdir -p %(admin_home_dir)s/~build' % env)
     run('mkdir -p %(admin_home_dir)s/etc/httpd/conf.d' % env)
     with cd(env.build):
         run('tar -xzf %(packages_cache)s/%(APACHE)s.tar.gz' % env)
@@ -78,12 +81,12 @@ def sqlite():
     setup_env_for_user(env.user)
 
     run('mkdir -p %(admin_home_dir)s/~build' % env)
-    with cd(env.build):
+    with cd(env.packages_cache):
         if not exists('%(SQLITE)s.tar.gz' % env):
             run('wget http://fossies.org/unix/misc/%(SQLITE)s.tar.gz' % env)
 
     with cd(env.build):
-        run('tar -xzf %(SQLITE)s.tar.gz' % env)
+        run('tar -xzf %(packages_cache)s/%(SQLITE)s.tar.gz' % env)
         run('ls -al')
         with cd(env.SQLITE):
             run('./configure '\
@@ -102,13 +105,14 @@ def uwsgi():
     """
     setup_env_for_user(env.user)
     run('mkdir -p %(admin_home_dir)s/~build' % env)
-    with cd(env.build):
+    with cd(env.packages_cache):
         if not exists('%(UWSGI)s.tar.gz' % env):
             run("wget http://projects.unbit.it/downloads/%(UWSGI)s.tar.gz" % env)
-        run('tar -xzf %(UWSGI)s.tar.gz' % env)
-        with cd(env.UWSGI):
-            run('python uwsgiconfig.py --build' % env)
-            run("cp uwsgi %(base)s/bin/uwsgi" % env)
+
+    run('tar -xzf %(packages_cache)s/%(UWSGI)s.tar.gz' % env)
+    with cd(env.UWSGI):
+        run('python uwsgiconfig.py --build' % env)
+        run("cp uwsgi %(base)s/bin/uwsgi" % env)
 
 
 @task
@@ -134,6 +138,8 @@ def modwsgi():
 @task
 def sqlplus():
     setup_env_for_user(env.user)
+    run('mkdir -p %(admin_home_dir)s/~build' % env)
+
     with cd('%(packages_cache)s' % env):
         with settings(warn_only=True):
             arch = run('uname -i')
@@ -159,6 +165,8 @@ def oracle():
     """ compile and install oracle drivers
     """
     setup_env_for_user(env.user)
+    run('mkdir -p %(admin_home_dir)s/~build' % env)
+
     with cd('%(packages_cache)s' % env):
         with settings(warn_only=True):
             arch = run('uname -i')
@@ -192,12 +200,13 @@ def oracle():
 
 
 @task
-def ngnix():
+def nginx():
     """ compile and install nginx
     """
     setup_env_for_user()
     run('mkdir -p %(build)s' % env)
-    with cd(env.build):
+
+    with cd(env.packages_cache):
         if not exists('%(NGINX)s.tar.gz' % env):
             run("wget http://nginx.org/download/%(NGINX)s.tar.gz" % env)
         if not exists('pcre-%(PCRE)s.tar.gz' % env):
@@ -206,17 +215,17 @@ def ngnix():
             run("wget http://projects.unbit.it/downloads/%(UWSGI)s.tar.gz" % env)
 
     with cd(env.build):
-        run("tar -xzf %(NGINX)s.tar.gz" % env)
-        run("tar -xzf pcre-%(PCRE)s.tar.gz" % env)
-        run("tar -xzf %(UWSGI)s.tar.gz" % env)
-        with settings(prefix="%s/opt/ngnix" % env.base):
+        run("tar -xzf %(packages_cache)s/%(NGINX)s.tar.gz" % env)
+        run("tar -xzf %(packages_cache)s/pcre-%(PCRE)s.tar.gz" % env)
+        run("tar -xzf %(packages_cache)s/%(UWSGI)s.tar.gz" % env)
+        with settings(prefix="%s/opt/nginx" % env.base):
             with cd(env.NGINX):
                 run("mkdir -p %(prefix)s/tmp" % env)
                 run("./configure --prefix=%(prefix)s"
-                    " --sbin-path=%(prefix)s/ngnix"
-                    " --pid-path=%(prefix)s/run/ngnix.pid"
-                    " --lock-path=%(prefix)s/run/ngnix.lck"
-                    #                    " --user=ngnix"
+                    " --sbin-path=%(prefix)s/nginx"
+                    " --pid-path=%(prefix)s/run/nginx.pid"
+                    " --lock-path=%(prefix)s/run/nginx.lck"
+                    #                    " --user=nginx"
                     " --group=%(group)s"
                     " --with-debug "
                     " --with-select_module"
@@ -236,8 +245,8 @@ def ngnix():
                     " --http-fastcgi-temp-path=%(prefix)s/tmp/fcgi/"\
                     " --http-uwsgi-temp-path=%(prefix)s/tmp/uwsgi/"\
                     " --http-scgi-temp-path=%(prefix)s/tmp/scgi/"\
-                    " --http-log-path=%(prefix)s/logs/ngnix/access.log"\
-                    " --error-log-path=%(prefix)s/logs/ngnix/error.log"\
+                    " --http-log-path=%(prefix)s/logs/nginx/access.log"\
+                    " --error-log-path=%(prefix)s/logs/nginx/error.log"\
                     " --with-pcre=../pcre-%(PCRE)s" % env
                 )
                 run("make")
@@ -504,7 +513,7 @@ def base():
     execute(postgresql)
     execute(python)
     execute(uwsgi)
-    execute(ngnix)
+    execute(nginx)
 
 
 # @task
@@ -527,7 +536,7 @@ def base():
 #     # execute(openldap)
 #
 #     execute(uwsgi)
-#     execute(ngnix)
+#     execute(nginx)
 #
 #     execute(apache)
 #     execute(modwsgi)

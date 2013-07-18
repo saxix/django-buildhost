@@ -3,9 +3,11 @@ from fabric.api import *
 import os
 from fabric.contrib.files import exists, upload_template
 import sys
-PASSWORD_FILE='~/.credentials.json'
+
+PASSWORD_FILE = '~/.credentials.json'
 
 get_home_dir = lambda username: os.path.join(env.PREFIX, username)
+
 
 def load_password(filename=PASSWORD_FILE):
     try:
@@ -13,11 +15,13 @@ def load_password(filename=PASSWORD_FILE):
     except IOError:
         pass
 
+
 def save_password(filename=PASSWORD_FILE):
     try:
         json.dump(env.passwords, open(os.path.expanduser(filename), 'w'), indent=3)
     except IOError:
         pass
+
 
 def init():
     env.packages_cache = "%s/packages_cache" % env.PREFIX
@@ -41,7 +45,8 @@ def as_bool(value, default):
     else:
         return bool(value)
 
-def _upload_template( name, dest, **kwargs ):
+
+def _upload_template(name, dest, **kwargs):
     tpl_dir = kwargs.pop('template_dir', env.template_dir)
     upload_template(name % env, dest % env, env, use_jinja=True, template_dir=tpl_dir, **kwargs)
 
@@ -49,6 +54,7 @@ def _upload_template( name, dest, **kwargs ):
 def get_env(name, default=None):
     ret = run("echo $%s" % name)
     return ret.strip() or default
+
 
 def setup_env_for_user(admin=None, home_dir=None):
     """ setup enviroment for the selected admin.
@@ -58,7 +64,7 @@ def setup_env_for_user(admin=None, home_dir=None):
 
     if admin is not None:
         env.admin = admin
-        row = run('cat /etc/passwd | grep %s' % admin )
+        row = run('cat /etc/passwd | grep %s' % admin)
         env.admin_home_dir = home_dir or row.split(':')[5]
     else:
         env.admin = env.user
@@ -76,14 +82,14 @@ def pip_install(pkg, upgrade=False, mask='"%s"'):
     with settings(pkgs=pkgs, upgrade=up, alaska='http://wfpdevel:wfpdevel@alaska.k-tech.it/pypi/pasportng/'):
         run('pip install %(upgrade)s -f %(pypi)s -f %(alaska)s %(pkgs)s' % env)
 
-def check_no_pending_commit(package, halt=True, forceto=''):
 
+def check_no_pending_commit(package, halt=True, forceto=''):
     package_dir = os.path.realpath(os.path.join(os.path.dirname(package.__file__)))
     product_dir = os.path.join(package_dir, os.pardir)
     if halt:
-        exit_func=sys.exit
+        exit_func = sys.exit
     else:
-        exit_func = lambda x:x
+        exit_func = lambda x: x
 
     if os.path.isfile(os.path.join(product_dir, 'setup.py')):
         with lcd(product_dir):

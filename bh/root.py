@@ -5,19 +5,24 @@ from fabric.api import *
 from fabric.contrib.files import contains, exists
 from bh.utils import _upload_template, setup_env_for_user, get_home_dir
 
+
 @task
 def du():
     run('for x in `ls %(PREFIX)s`;do test -e "%(PREFIX)s/$x/.bashrc" && du -sh %(PREFIX)s/$x; done' % env)
     run('df -h')
 
+
 @task
 def clear():
-    run('for x in `ls %(PREFIX)s`;do test -e "%(PREFIX)s/$x/.bashrc" && rm -fr %(PREFIX)s/$x/logs/* %(PREFIX)s/$x/~*; done' % env)
+    run(
+        'for x in `ls %(PREFIX)s`;do test -e "%(PREFIX)s/$x/.bashrc" && rm -fr %(PREFIX)s/$x/logs/* %(PREFIX)s/$x/~*; done' % env)
+
 
 @task
 def allenv(cmd):
     with settings(xcmd=cmd):
         print('%(PREFIX)s/sbin/all_env_shell.sh %(xcmd)s' % env)
+
 
 @task
 def init_env():
@@ -29,7 +34,7 @@ def init_env():
         - install all required libraries/sources
 
     """
-    if not contains("/etc/group", r"^%(group)s:x" % env, escape=False ):
+    if not contains("/etc/group", r"^%(group)s:x" % env, escape=False):
         sudo('groupadd %(group)s' % env)
 
     sudo('mkdir -p %(pip_cache)s' % env)
@@ -57,11 +62,13 @@ def install_libraries():
     else:
         ubuntu_prereq()
 
+
 @task
 def list_instances():
     """ list available pasport instances
     """
     run('for x in `ls %(PREFIX)s`;do test -e "%(PREFIX)s/$x/.bashrc" && echo $x; done' % env)
+
 
 @task
 def reset_host():
@@ -75,21 +82,29 @@ def reset_host():
     sudo('getent group pasport')
     #sudo('rm -fr %(PREFIX)s/*' % env)
 
+
+@task
+def group_create(name):
+    sudo('groupadd  -f %s' % name)
+
+
 @task
 def user_create(admin, password='123'):
     """ create a user
 
     """
-    if not contains("/etc/passwd", "^%s:" % admin):
+    execute(group_create, env.group)
+    if not contains("/etc/passwd", '^%s:' % admin, use_sudo=True, escape=False):
         with settings(admin=admin):
-            sudo('useradd -g %(group)s %(admin)s -M -g %(group)s' % env )
+            sudo('useradd -g %(group)s %(admin)s -M -g %(group)s' % env)
     else:
         out = sudo('groups %s' % admin)
         assert re.search(r"\%(group)s\b" % env, out) # check the user in pasport group
 
     setup_env_for_user(admin)
     admin_home_dir = get_home_dir(admin)
-    user_setup( admin, password, admin_home_dir )
+    user_setup(admin, password, admin_home_dir)
+
 
 @task
 def user_remove(admin):
@@ -99,6 +114,7 @@ def user_remove(admin):
     setup_env_for_user(admin)
     run('userdel %s' % admin)
     run('rm -fr %(admin_home_dir)s' % env)
+
 
 @task
 def user_setup(admin, password='123', home_dir=None):
@@ -124,8 +140,22 @@ def chown():
     sudo('chown -R %(admin)s:%(group)s %(base)s' % env)
     sudo('chmod -R ug+rwx %(base)s ' % env)
     sudo('chmod g+rw,o-rw %(PREFIX)s' % env)
-    sudo('chmod g+rw,o-rw %(pip_cache)s' % env)
-    sudo('chmod g+rw,o-rw %(packages_cache)s' % env)
+    common_dirs()
+
+
+def common_dirs():
+    if not exists(env.packages_cache):
+        run('mkdir -p %(packages_cache)s' % env)
+    if not exists(env.pip_cache):
+        run('mkdir -p %(pip_cache)s' % env)
+    sudo('chmod ugo+rwx %(packages_cache)s/' % env)
+    sudo('chmod ugo+rwx %(packages_cache)s/.*' % env)
+    sudo('chmod ugo+rwx %(packages_cache)s/*' % env)
+
+    sudo('chmod ugo+rwx %(pip_cache)s' % env)
+    sudo('chmod ugo+rwx %(pip_cache)s/.*' % env)
+    with settings(warn_only=True):
+        sudo('chmod ugo+rwx %(pip_cache)s/*' % env)
 
 
 def ubuntu_prereq():
@@ -157,11 +187,11 @@ def _redhat_prereq():
 def copy_packages():
     """ copy local source code tarball to remote machine
     """
-#    for source, dest in [(env.local_tarball , env.packages_cache), ('pip_cache', env.pip_cache)]:
+    #    for source, dest in [(env.local_tarball , env.packages_cache), ('pip_cache', env.pip_cache)]:
     if not exists(env.packages_cache):
         run('mkdir -p %(packages_cache)s' % env)
 
-    for source, dest in [(env.local_tarball , env.packages_cache), ]:
+    for source, dest in [(env.local_tarball, env.packages_cache), ]:
         with lcd(source):
             packages = local('ls *', True)
             for p in packages.split('\n'):
@@ -169,7 +199,6 @@ def copy_packages():
                 if not exists(target):
                     with settings(p=os.path.abspath("%s/%s" % (source, p)), dest=dest):
                         local('scp %(p)s %(user)s@%(host)s:%(dest)s/' % env)
-
 
 
 @task
