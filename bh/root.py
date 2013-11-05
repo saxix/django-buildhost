@@ -100,7 +100,8 @@ def user_create(admin, password='123'):
     else:
         out = sudo('groups %s' % admin)
         assert re.search(r"\%(group)s\b" % env, out) # check the user in pasport group
-
+    sudo('mkdir -p %(PREFIX)s' % env)
+    sudo('chown %(user)s:%(group)s %(PREFIX)s' % env)
     setup_env_for_user(admin)
     admin_home_dir = get_home_dir(admin)
     user_setup(admin, password, admin_home_dir)
