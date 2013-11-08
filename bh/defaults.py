@@ -2,12 +2,13 @@ import os
 from fabric.api import *
 
 
-env.NGINX = 'nginx-1.3.8'
-env.UWSGI = 'uwsgi-1.3'
-env.PCRE = "8.20"
-env.VIRTUALENV = "virtualenv-1.7"
+env.NGINX = '1.4.1'
+env.UWSGI = '1.9.18.2'
+env.PCRE = "8.21"
+env.MYSQL = "5.6.14"
+#env.VIRTUALENV = "virtualenv-1.7"
 env.REDMINE = "redmine-1.3.0"
-env.PYTHON = "2.7.3"
+env.PYTHON = "2.7.5"
 env.APACHE = "httpd-2.2.24"
 env.MOD_WSGI = 'mod_wsgi-3.3'
 env.SQLITE = 'sqlite-autoconf-3071602'
