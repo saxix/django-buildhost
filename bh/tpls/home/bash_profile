@@ -6,8 +6,8 @@ if [ -f ~/.bashrc ]; then
 fi
 
 # User specific environment and startup programs
-
 PATH=$PATH:$HOME/bin
-export LD_LIBRARY_PATH=$SITE_ENV/lib:$SITE_ENV/oracle/instantclient_11_2:
+
+export LD_LIBRARY_PATH=$SITE_ENV/lib:$SITE_ENV/oracle/instantclient_12_1:
 export PATH
 unset USERNAME

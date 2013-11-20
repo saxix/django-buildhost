@@ -143,7 +143,7 @@ def chown():
     sudo('chmod g+rw,o-rw %(PREFIX)s' % env)
     common_dirs()
 
-
+@task
 def common_dirs():
     if not exists(env.packages_cache):
         run('mkdir -p %(packages_cache)s' % env)

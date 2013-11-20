@@ -23,5 +23,7 @@ env.SASL = "2.1.25"
 env.LIBTOOL = "2.4.2"
 env.unixODBC="2.3.1"
 env.PSQLODBC="09.01.0200"
+env.ORACLE='12.1.0.1.0'
+env_ORACLE_BASE='12_1'
 
 env.tarball_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'tarballs'))

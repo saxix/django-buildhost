@@ -1,7 +1,7 @@
 import StringIO
 from fabric.api import *
 from fabric.colors import green, red
-from fabric.contrib.files import upload_template, exists
+from fabric.contrib.files import upload_template, exists, sed
 from bh.utils import as_bool
 from bh.user import setup_env_for_user
 
@@ -136,6 +136,36 @@ def sqlplus():
     run('sqlplus  -V') # simple check
 
 
+#@task
+#def oracle():
+#    """ compile and install oracle drivers
+#    """
+#    setup_env_for_user(env.user)
+#    run('mkdir -p %(admin_home_dir)s/~build' % env)
+#    #put('%(tarball_dir)s/instantclient-*' % env, env.packages_cache)
+#    with cd(env.base):
+#        run('rm -fr oracle*')
+#        run('mkdir -p oracle')
+#        with settings(finder="find %(packages_cache)s -regextype posix-extended -type f -regex '%(packages_cache)s/instantclient-(sdk|basic-linux|sqlplus).*%(ORACLE)s.*'" % env):
+#            with cd('oracle'):
+#                arch = run('uname -i')
+#                if arch == 'x86_64':
+#                    run('%(finder)s -exec unzip "{}" \;' % env)
+#                elif arch == 'i386':
+#                    raise Exception('Not supported')
+#
+#                env.oracle_home = run('find $PWD -type d -iname "instant*"' % env)
+#
+#    sed("~/.bash_profile", "export LD_LIBRARY_PATH=.*", "export LD_LIBRARY_PATH=$SITE_ENV/lib:%(oracle_home)s:" % env)
+#    sed("~/bin/activate", "export ORACLE_HOME=.*", "export ORACLE_HOME=%(oracle_home)s:" % env)
+#
+#    run('pip install -I cx_Oracle')
+#    run('mkdir -p ~/logs/oracle')
+#    run('ln -s ~/logs/oracle %(oracle_home)s/log' % env)
+#    # test
+#    out = run('python -c "import cx_Oracle;print(222)"')
+#    assert out.startswith("222")
+
 @task
 def oracle():
     """ compile and install oracle drivers
@@ -152,12 +182,16 @@ def oracle():
             elif arch == 'i386':
                 run('find %(packages_cache)s -name "instantclient*" -name "*86-64*" -exec unzip "{}" \;' % env)
             with cd('instantclient_*'):
-                env.oracle_home = '%(base)s/oracle/instantclient_11_2' % env
                 run('ln -sf libclntsh.so.11.1 libclntsh.so')
+
+    env.oracle_home = run('find $PWD -type d -iname "instant*"' % env)
+    sed("~/.bash_profile", "export LD_LIBRARY_PATH=.*", "export LD_LIBRARY_PATH=$SITE_ENV/lib:%(oracle_home)s:" % env)
+    sed("~/bin/activate", "export ORACLE_HOME=.*", "export ORACLE_HOME=%(oracle_home)s:" % env)
+
 
     assert exists('%(oracle_home)s/libclntsh.so' % env)
     run('pip install cx_Oracle')
-    run('mkdir ~/logs/oracle')
+    run('mkdir -p ~/logs/oracle')
     run('ln -s ~/logs/oracle %(base)s/oracle/instantclient_11_2/log' % env)
     # test
     out = run('python -c "import cx_Oracle;print(222)"')
