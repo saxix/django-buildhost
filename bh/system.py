@@ -2,8 +2,30 @@ import StringIO
 from fabric.api import *
 from fabric.colors import green, red
 from fabric.contrib.files import upload_template, exists, sed
-from bh.utils import as_bool
 from bh.user import setup_env_for_user
+
+
+@task
+def redis():
+    """ compile and install redis
+    """
+    setup_env_for_user(env.user)
+    version = env.REDIS
+    run('mkdir -p {admin_home_dir}/~build'.format(**env))
+    with cd(env.build):
+        tar_pkg = 'redis-{version}.tar.gz'.format(version=version)
+        if not exists('{packages_cache}/{tar_pkg}'.format(tar_pkg=tar_pkg, **env)):
+            with cd(env.packages_cache):
+                run('wget http://download.redis.io/releases/{tar_pkg}'.format(tar_pkg=tar_pkg))
+        run('rm -rf redis-{version}'.format(version=version))
+        run('tar -xzf {packages_cache}/{tar_pkg}'.format(tar_pkg=tar_pkg, **env))
+        with cd('redis-{version}'.format(version=version)):
+            run('make PREFIX={base}'.format(**env))
+            run('make PREFIX={base} install'.format(**env))
+    # check install
+    out = run('which redis-server')
+    assert out.startswith('{base}/'.format(**env))
+
 
 @task
 def python():

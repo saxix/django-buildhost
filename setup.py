@@ -11,6 +11,7 @@ NAME = app.NAME
 for scheme in INSTALL_SCHEMES.values():
     scheme['data'] = scheme['purelib']
 
+
 def fullsplit(path, result=None):
     """
     Split a pathname into components (the opposite of os.path.join) in a
@@ -26,13 +27,14 @@ def fullsplit(path, result=None):
     return fullsplit(head, [tail] + result)
 
 
-def scan_dir( target, _packages=None, _data_files=None):
+def scan_dir(target, _packages=None, _data_files=None):
     packages = _packages or []
     data_files = _data_files or []
     for dir_path, dir_names, file_names in os.walk(target):
         # Ignore dir_names that start with '.'
         for i, dir_name in enumerate(dir_names):
-            if dir_name.startswith('.'): del dir_names[i]
+            if dir_name.startswith('.'):
+                del dir_names[i]
         if '__init__.py' in file_names:
             packages.append('.'.join(fullsplit(dir_path)))
         elif file_names:
