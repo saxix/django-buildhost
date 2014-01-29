@@ -151,7 +151,8 @@ def common_dirs():
         run('mkdir -p %(pip_cache)s' % env)
     sudo('chmod ugo+rwx %(packages_cache)s/' % env)
     sudo('chmod ugo+rwx %(packages_cache)s/.*' % env)
-    sudo('chmod ugo+rwx %(packages_cache)s/*' % env)
+    with settings(warn_only=True):
+        sudo('chmod ugo+rwx %(packages_cache)s/*' % env)
 
     sudo('chmod ugo+rwx %(pip_cache)s' % env)
     sudo('chmod ugo+rwx %(pip_cache)s/.*' % env)
