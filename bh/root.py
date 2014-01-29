@@ -99,7 +99,7 @@ def user_create(admin, password='123'):
             sudo('useradd -g %(group)s %(admin)s -M -g %(group)s' % env)
     else:
         out = sudo('groups %s' % admin)
-        assert re.search(r"\%(group)s\b" % env, out) # check the user in pasport group
+        assert re.search(': (.+)', out).group(1) == env.group
     sudo('mkdir -p %(PREFIX)s' % env)
     sudo('chown %(user)s:%(group)s %(PREFIX)s' % env)
     setup_env_for_user(admin)
