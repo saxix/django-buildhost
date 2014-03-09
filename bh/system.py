@@ -1,8 +1,25 @@
 import StringIO
+import os
 from fabric.api import *
 from fabric.colors import green, red
 from fabric.contrib.files import upload_template, exists, sed
 from bh.user import setup_env_for_user
+
+
+def _get_pkg(pkg_url):
+    """ extracts existing pkg in env.build and returns path of extracted pkg
+    tries from packages_cache first, if not exist, downloads.
+    """
+    run('mkdir -p {admin_home_dir}/~build'.format(**env))
+    with cd(env.build):
+        tar_pkg = pkg_url.split('/')[-1]
+        if not exists('{packages_cache}/{tar_pkg}'.format(tar_pkg=tar_pkg, **env)):
+            with cd(env.packages_cache):
+                run('wget {}'.format(pkg_url))
+        extracted_pkg = tar_pkg.replace('.tar.gz', '').replace('.tgz', '')
+        run('rm -rf {extracted_pkg}'.format(extracted_pkg=extracted_pkg))
+        run('tar -xzf {packages_cache}/{tar_pkg}'.format(tar_pkg=tar_pkg, **env))
+    return os.path.join(env.build, extracted_pkg)
 
 
 @task
@@ -10,18 +27,10 @@ def redis():
     """ compile and install redis
     """
     setup_env_for_user(env.user)
-    version = env.REDIS
-    run('mkdir -p {admin_home_dir}/~build'.format(**env))
-    with cd(env.build):
-        tar_pkg = 'redis-{version}.tar.gz'.format(version=version)
-        if not exists('{packages_cache}/{tar_pkg}'.format(tar_pkg=tar_pkg, **env)):
-            with cd(env.packages_cache):
-                run('wget http://download.redis.io/releases/{tar_pkg}'.format(tar_pkg=tar_pkg))
-        run('rm -rf redis-{version}'.format(version=version))
-        run('tar -xzf {packages_cache}/{tar_pkg}'.format(tar_pkg=tar_pkg, **env))
-        with cd('redis-{version}'.format(version=version)):
-            run('make PREFIX={base}'.format(**env))
-            run('make PREFIX={base} install'.format(**env))
+    pkg = _get_pkg('http://download.redis.io/releases/{}'.format(env.REDIS))
+    with cd(pkg):
+        run('make PREFIX={base}'.format(**env))
+        run('make PREFIX={base} install'.format(**env))
     # check install
     out = run('which redis-server')
     assert out.startswith('{base}/'.format(**env))
@@ -34,28 +43,22 @@ def python():
     setup_env_for_user(env.user)
     version = env.PYTHON.replace('Python-', '')
     run('mkdir -p %(admin_home_dir)s/~build' % env)
-    with cd(env.build):
-        if not exists('%(packages_cache)s/%(PYTHON)s.tgz' % env):
-            with cd(env.packages_cache):
-                run('wget http://www.python.org/ftp/python/%(PYTHON)s/Python-%(PYTHON)s.tgz' % env)
-        run('tar -xzf %(packages_cache)s/Python-%(PYTHON)s.tgz' % env)
-        with cd('Python-%(PYTHON)s' % env):
-            run('./configure --prefix=%(base)s --enable-shared --with-threads' % env)
-            run('make clean')
-            run('make')
-            run('make install')
+    pkg = _get_pkg('http://www.python.org/ftp/python/{0}/Python-{0}.tgz'.format(version))
+    with cd(pkg):
+        run('./configure --prefix=%(base)s --enable-shared --with-threads' % env)
+        run('make clean')
+        run('make')
+        run('make install')
 
     # check local install
     out = run('python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())"')
     assert out.startswith("%(base)s/" % env), 'Error: `%s` ' % out
 
-    # checl ssl support
+    # check ssl support
     out = run('python -c "import socket;print socket.ssl"')
     assert out.startswith("<function ssl at "), out
 
-    run('wget http://python-distribute.org/distribute_setup.py')
-    run('python distribute_setup.py')
-    run('easy_install -U pip')
+    run('curl https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python')
     run('pip install ipython')
 
 
@@ -67,9 +70,16 @@ def apache():
 
     run('mkdir -p %(admin_home_dir)s/~build' % env)
     run('mkdir -p %(admin_home_dir)s/etc/httpd/conf.d' % env)
+    version = env.APACHE.replace('httpd-', '')
+    apache_pkg = _get_pkg('http://apache.mirrors.spacedump.net//httpd/httpd-{}.tar.gz'.format(version))
+    # get latest apr/apr-util (note: required as not bundled for apache 2.4+)
+    apr_pkg = _get_pkg('http://apache.mirrors.spacedump.net/apr/apr-1.5.0.tar.gz')
+    apr_util_pkg = _get_pkg('http://apache.mirrors.spacedump.net/apr/apr-util-1.5.3.tar.gz')
     with cd(env.build):
-        run('tar -xzf %(packages_cache)s/%(APACHE)s.tar.gz' % env)
-        with cd(env.APACHE):
+        run('mkdir -p ./srclib')
+        run('mv {apr_pkg} {apache_pkg}/srclib/apr'.format(apr_pkg=apr_pkg, apache_pkg=apache_pkg))
+        run('mv {apr_util_pkg} {apache_pkg}/srclib/apr-util'.format(apr_util_pkg=apr_util_pkg, apache_pkg=apache_pkg))
+        with cd(apache_pkg):
             run('./configure '\
                 ' --prefix=%(base)s'\
                 ' --exec_prefix=%(base)s'\
@@ -158,36 +168,6 @@ def sqlplus():
     run('sqlplus  -V') # simple check
 
 
-#@task
-#def oracle():
-#    """ compile and install oracle drivers
-#    """
-#    setup_env_for_user(env.user)
-#    run('mkdir -p %(admin_home_dir)s/~build' % env)
-#    #put('%(tarball_dir)s/instantclient-*' % env, env.packages_cache)
-#    with cd(env.base):
-#        run('rm -fr oracle*')
-#        run('mkdir -p oracle')
-#        with settings(finder="find %(packages_cache)s -regextype posix-extended -type f -regex '%(packages_cache)s/instantclient-(sdk|basic-linux|sqlplus).*%(ORACLE)s.*'" % env):
-#            with cd('oracle'):
-#                arch = run('uname -i')
-#                if arch == 'x86_64':
-#                    run('%(finder)s -exec unzip "{}" \;' % env)
-#                elif arch == 'i386':
-#                    raise Exception('Not supported')
-#
-#                env.oracle_home = run('find $PWD -type d -iname "instant*"' % env)
-#
-#    sed("~/.bash_profile", "export LD_LIBRARY_PATH=.*", "export LD_LIBRARY_PATH=$SITE_ENV/lib:%(oracle_home)s:" % env)
-#    sed("~/bin/activate", "export ORACLE_HOME=.*", "export ORACLE_HOME=%(oracle_home)s:" % env)
-#
-#    run('pip install -I cx_Oracle')
-#    run('mkdir -p ~/logs/oracle')
-#    run('ln -s ~/logs/oracle %(oracle_home)s/log' % env)
-#    # test
-#    out = run('python -c "import cx_Oracle;print(222)"')
-#    assert out.startswith("222")
-
 @task
 def oracle():
     """ compile and install oracle drivers
@@ -227,53 +207,40 @@ def nginx(version=None):
     if version:
         env.NGINX = version
     setup_env_for_user()
-    with cd(env.build):
-        with cd(env.packages_cache):
-            if not exists('%(packages_cache)s/nginx-%(NGINX)s.tar.gz' % env):
-                run('wget http://nginx.org/download/nginx-%(NGINX)s.tar.gz' % env)
-
-            if not exists('%(packages_cache)s/pcre-%(PCRE)s.tar.gz' % env):
-                run('wget ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-%(PCRE)s.tar.gz' % env)
-
-            if not exists('%(packages_cache)s/uwsgi-%(UWSGI)s.tar.gz' % env):
-                run('wget http://projects.unbit.it/downloads/uwsgi-%(UWSGI)s.tar.gz' % env)
-
-        run("tar -xzf %(packages_cache)s/nginx-%(NGINX)s.tar.gz" % env)
-        run("tar -xzf %(packages_cache)s/pcre-%(PCRE)s.tar.gz" % env)
-        run("tar -xzf %(packages_cache)s/uwsgi-%(UWSGI)s.tar.gz" % env)
-
-        with cd('nginx-%(NGINX)s' % env):
-            run("./configure --prefix=%(base)s" \
-                " --sbin-path=%(base)s/bin" \
-                " --pid-path=%(base)s/run/nginx.pid" \
-                " --lock-path=%(base)s/run/nginx.lck" \
-                " --user=nginx" \
-                " --group=%(group)s" \
-                " --with-debug " \
-                    #                " --with-google_perftools_module"\
-                " --with-select_module" \
-                " --with-http_ssl_module" \
-                " --with-http_gzip_static_module" \
-                " --with-http_stub_status_module" \
-                " --with-http_realip_module" \
-                " --with-http_ssl_module" \
-                " --with-http_sub_module" \
-                " --with-http_addition_module" \
-                " --with-http_flv_module" \
-                " --with-http_addition_module" \
-                " --with-file-aio" \
-                " --with-sha1-asm" \
-                " --http-proxy-temp-path=%(base)s/tmp/proxy/" \
-                " --http-client-body-temp-path=%(base)s/tmp/client/" \
-                " --http-fastcgi-temp-path=%(base)s/tmp/fcgi/" \
-                " --http-uwsgi-temp-path=%(base)s/tmp/uwsgi/" \
-                " --http-scgi-temp-path=%(base)s/tmp/scgi/" \
-                " --http-log-path=%(base)s/logs/nginx/access.log" \
-                " --error-log-path=%(base)s/logs/nginx/error.log" \
-                " --with-pcre=../pcre-%(PCRE)s" % env
-            )
-            run("make")
-            run("make install")
+    nginx_pkg = _get_pkg('http://nginx.org/download/nginx-{}.tar.gz'.format(env.NGINX))
+    pcre_pkg = _get_pkg('ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-{}.tar.gz'.format(env.PCRE))
+    with cd(nginx_pkg):
+        run("./configure --prefix={base}"
+            " --sbin-path={base}/bin"
+            " --pid-path={base}/run/nginx.pid"
+            " --lock-path={base}/run/nginx.lck"
+            " --user=nginx"
+            " --group={group}"
+            " --with-debug "
+                #                " --with-google_perftools_module"
+            " --with-select_module"
+            " --with-http_ssl_module"
+            " --with-http_gzip_static_module"
+            " --with-http_stub_status_module"
+            " --with-http_realip_module"
+            " --with-http_sub_module"
+            " --with-http_addition_module"
+            " --with-http_flv_module"
+            " --with-http_addition_module"
+            " --with-file-aio"
+            " --with-sha1-asm"
+            " --http-proxy-temp-path={base}/tmp/proxy/"
+            " --http-client-body-temp-path={base}/tmp/client/"
+            " --http-fastcgi-temp-path={base}/tmp/fcgi/"
+            " --http-uwsgi-temp-path={base}/tmp/uwsgi/"
+            " --http-scgi-temp-path={base}/tmp/scgi/"
+            " --http-log-path={base}/logs/nginx/access.log"
+            " --error-log-path={base}/logs/nginx/error.log"
+            " --with-pcre={pcre_pkg}"
+            "".format(pcre_pkg=pcre_pkg, **env)
+        )
+        run("make")
+        run("make install")
 
 
 @task
@@ -317,6 +284,7 @@ def copy_cmds():
     upload_template("tpls/sbin/all_env_command.sh", "%(PREFIX)s/sbin" % env, env, use_jinja=True)
     run('chmod +x %(PREFIX)s/sbin/*.sh' % env)
 
+
 @task
 def postgresql():
     setup_env_for_user(env.user)
@@ -329,7 +297,6 @@ def postgresql():
             run('make')
             run('make install')
         run('rm -fr postgresql-%(POSTGRES)s' % env)
-
 
 
 def mysql():
