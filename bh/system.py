@@ -58,7 +58,10 @@ def python():
     out = run('python -c "import socket;print socket.ssl"')
     assert out.startswith("<function ssl at "), out
 
-    run('curl https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python')
+    run('curl https://bootstrap.pypa.io/get-pip.py | python')
+    out = run('which pip')
+    assert out == '~/bin/pip'
+    
     run('pip install ipython')
 
 
